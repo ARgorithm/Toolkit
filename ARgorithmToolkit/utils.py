@@ -7,7 +7,6 @@ Both work:
     >>> algo = ARgorithmToolkit.utils.StateSet()
     >>> algo = ARgorithmToolkit.StateSet()
 """
-
 class ARgorithmError(Exception):
     """The error class for ARgorithmToolkit.
 
@@ -52,19 +51,56 @@ class State:
 
     For example , ARgorithmToolkit.array.Array has
     ARgorithmToolkit.array.ArrayState
+
+    Attributes:
+        state_type (str) : The State Type which has fixed value based on designs
+        state_def (dict) : Definition of event that trigger this state
+        comments (str) : Description of state event that can be given by user or auto-generated
+        autoplay (bool) : Flag that suggested whether this state can automatically trigger the next in rendering process
     """
+    state_type:str
+    state_def:dict
+    comments:str
+    autoplay:bool
+
     def __init__(self,**kwargs):
-        self.content = {}
         for x in ['state_type','state_def','comments']:
             try:
-                self.content[x] = kwargs[x]
+                self.__dict__[x] = kwargs[x]
             except KeyError as e:
                 raise ARgorithmError(f"{x} should be present in State arguments") from e
+        if 'autoplay' in kwargs:
+            self.autoplay = kwargs['autoplay']
+        else:
+            self.autoplay = False
+
+    def __eq__(self,other):
+        """Equality operator overload for State.
+
+        Two states are equal if and only if state_def and state_type are the
+        same. This is useful for removing duplicate states
+
+        Args:
+            other (State): The state to be compared
+
+        Returns:
+            bool: True if both States are equivalent else False
+        """
+        if not isinstance(other,State):
+            raise TypeError(f"Instance of State cannot be compared with {type(other).__name__}")
+        cmp1 = self.state_type == other.state_type
+        cmp2 = self.state_def == other.state_def
+        return cmp1 and cmp2
 
     def __str__(self):
-        data = str(self.content)
+        content = {
+            "state_type" : self.state_type,
+            "state_def" : self.state_def,
+            "comments" : self.comments,
+            "autoplay" : self.autoplay
+        }
+        data = str(content)
         return data
-
 
 class StateSet:
     """The most important class in the entire toolkit. An object of this class
@@ -75,12 +111,18 @@ class StateSet:
 
     Attributes:
         states (list): This is list of State objects that is sequentially rendered in Augmented Reality.
+        autoplay (bool): If this is set, then all states
 
     Examples:
         >>> algo = ARgorithmToolkit.StateSet()
     """
-    def __init__(self):
+    def __init__(self,autoplay=None):
         self.states = []
+        try:
+            assert isinstance(autoplay,bool) or autoplay is None
+            self.autoplay = None
+        except AssertionError as ae:
+            raise TypeError("autoplay should be of type bool or None") from ae
 
     def add_state(self,state):
         """This method adds State to the list of states.
@@ -95,7 +137,12 @@ class StateSet:
             >>> algo.add_state(state)
         """
         assert isinstance(state,State) , ARgorithmError("state should be of Type state")
-        self.states.append(state)
+        if len(self.states) == 0 or state.state_type == "comment":
+            self.states.append(state)
+            return
+        last = self.states[-1]
+        if last != state:
+            self.states.append(state)
 
     def __str__(self):
         """String representation of StateSet.

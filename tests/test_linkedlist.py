@@ -1,95 +1,87 @@
-"""Testing linked list
-"""
-import ARgorithmToolkit
-from .utils import last_state
-algo = ARgorithmToolkit.StateSet()
-fl = ARgorithmToolkit.ForwardList("fl",algo)
+"""Testing linked list."""
+from ARgorithmToolkit import LinkedList,StateSet,LinkedListNode
+from .utils import last_state,check_states
+algo = StateSet()
 
 def test_node():
-    """Testing linked list node
-    """
-    llnode = ARgorithmToolkit.LinkedListNode(algo,7)
-    assert llnode.value == 7
-    assert llnode.next is None
-    assert last_state(algo)['state_type'] == "llnode_declare"
+    """Testing linked list node."""
+    llnode = LinkedListNode(algo,7)
+    assert llnode._value == 7
+    assert llnode._next is None
+    assert last_state(algo).state_type == "llnode_declare"
 
     llnode.value = 5
-    assert llnode.value == 5
-    assert llnode.next is None
-    assert last_state(algo)['state_type'] == "llnode_iter"
+    assert llnode._value == 5
+    assert llnode._next is None
+    assert last_state(algo).state_type == "llnode_iter"
 
 
-    temp = ARgorithmToolkit.LinkedListNode(algo,3)
+    temp = LinkedListNode(algo,3)
     llnode.next = temp
 
-    assert isinstance(llnode.next,ARgorithmToolkit.LinkedListNode)
-    assert llnode.next == temp
-    assert last_state(algo)['state_type'] == "llnode_next"
+    assert isinstance(llnode._next,LinkedListNode)
+    assert llnode._next == temp
+    assert last_state(algo).state_type == "llnode_next"
 
     llnode.next = None
     del temp
-    assert llnode.next is None
-    assert last_state(algo)['state_type'] == "llnode_delete"
+    assert llnode._next is None
+    assert last_state(algo).state_type == "llnode_delete"
 
-def test_ll():
-    """Testing linked list class
-    """
-    llnode = ARgorithmToolkit.LinkedListNode(algo,7)
-    ll = ARgorithmToolkit.LinkedList("llnode",algo,llnode)
+def test_linkedlist():
+    """Tests the LinkedList class."""
+    algo = StateSet()
+    linkedlist = LinkedList('list',algo)
+    temp = LinkedListNode(algo,2)
+    linkedlist.head = temp
 
-    assert last_state(algo)['state_type'] == "ll_declare"
+    algo = StateSet()
+    linkedlist = LinkedList('list',algo)
+    linkedlist.insert(3)
+    states_expected = [
+        "ll_declare",
+        "llnode_declare",
+        "ll_head"
+    ]
+    check_states(states_expected,algo)
 
-    temp = ARgorithmToolkit.LinkedListNode(algo,3)
-    ll.head = temp
+    linkedlist.insert(4)
+    states_expected = [
+        "llnode_declare",
+        "llnode_next",
+        "ll_head"
+    ]
+    check_states(states_expected,algo)
 
-    assert last_state(algo)['state_type'] == "ll_head"
+    linkedlist.insert(2,1)
+    states_expected = [
+        "llnode_declare",
+        "llnode_iter",
+        "llnode_next",
+        "llnode_next"
+    ]
+    check_states(states_expected,algo)
 
-def test_forwardlist():
-    """Testing forwardlist
-    """
-    fl = ARgorithmToolkit.ForwardList("fl",algo)
-    assert last_state(algo)['state_type'] == "ll_declare"
+    linkedlist.push_front(5)
+    states_expected = [
+        "llnode_declare",
+        "llnode_next",
+        "ll_head"
+    ]
+    check_states(states_expected,algo)
 
-    fl.push_front(4)
-    assert len(fl) == 1
-    assert isinstance(fl.head,ARgorithmToolkit.LinkedListNode)
-    assert last_state(algo)['state_type'] == "ll_head"
+    linkedlist.pop_front()
+    states_expected = [
+        "llnode_iter",
+        "ll_head",
+        "llnode_delete"
+    ]
+    check_states(states_expected,algo)
 
-    fl.push_front(3)
-    assert fl.tolist() == [3,4]
-
-    fl.insert(5,1)
-    assert len(fl) == 3
-    assert isinstance(fl.head,ARgorithmToolkit.LinkedListNode)
-    assert last_state(algo)['state_type'] == "llnode_next"
-    assert fl.tolist() == [3,5,4]
-
-    k = fl.pop_front()
-    assert k == 3
-    assert len(fl) == 2
-    assert last_state(algo)['state_type'] == "llnode_delete"
-
-    for _ in range(5):
-        fl.insert(9,2)
-
-    assert fl.tolist() == [5,4,9,9,9,9,9]
-
-    for _ in range(5):
-        fl.push_front(9)
-
-    fl.remove(9)
-    assert fl.tolist() == [5,4]
-    assert last_state(algo)['state_type'] == "llnode_delete"
-
-    fl.remove(5)
-    fl.pop_front()
-
-    assert fl.tolist() == []
-    assert len(fl) == 0
-    assert last_state(algo)['state_type'] == "llnode_delete"
-
-    try:
-        fl.pop_front()
-        raise AssertionError("Error not raised")
-    except ARgorithmToolkit.ARgorithmError:
-        pass
+    linkedlist.remove(2)
+    states_expected = [
+        "llnode_next",
+        "llnode_delete",
+        "llnode_iter"
+    ]
+    check_states(states_expected,algo)

@@ -1,17 +1,17 @@
+# pylint: disable=protected-access
 """The linkedlist module provides support for rendering linked lists.
 
-linkedlist module provides a wrapper for your LinkedList nodes useful for
-explanation and the Forwardlist class which is useful for application.
+linkedlist module provides the LinkedListNode for your nodes useful for
+explanation and the Linkedlist class which is useful for application.
 
 - The LinkedListNode class is used to represent a node.
-- The LinkedList class is used to store the head pointer.
-- The ForwardList class is a complete implementation of singly linked list
+- The LinkedList class is a complete implementation of singly linked list
 
 These three classes can be directly imported from the toolkit:
 
     >>> llnode = ARgorithmToolkit.LinkedListNode(algo,7)
     >>> ll = ARgorithmToolkit.LinkedList("llnode",algo,llnode)
-    >>> fl = ARgorithmToolkit.ForwardList("fl",algo)
+
 """
 
 from ARgorithmToolkit.utils import ARgorithmHashable, ARgorithmStructure, State, StateSet, ARgorithmError
@@ -47,7 +47,7 @@ class LinkedListNodeState:
             "id" : self._id,
             "variable_name" : self.name,
             "value" : value,
-            "next" : _next.name if _next else "none"
+            "next" : _next._id if _next else "none"
         }
         return State(
             state_type=state_type,
@@ -72,7 +72,7 @@ class LinkedListNodeState:
             "id" : self._id,
             "variable_name" : self.name,
             "value" : value,
-            "next" : _next.name if _next else "none"
+            "next" : _next._id if _next else "none"
         }
         if not(last_value is None):
             state_def["last_value"] = last_value
@@ -98,8 +98,8 @@ class LinkedListNodeState:
             "id" : self._id,
             "variable_name" : self.name,
             "value" : value,
-            "next" : _next.name if _next else "none",
-            "last_next" : last_next.name if last_next else "none"
+            "next" : _next._id if _next else "none",
+            "last_next" : last_next._id if last_next else "none"
         }
         return State(
             state_type=state_type,
@@ -150,8 +150,7 @@ class LinkedListNode(ARgorithmStructure, ARgorithmHashable):
         >>> temp.next = llnode
         >>> llnode = temp
     """
-
-    def __init__(self,algo:StateSet,value=None,comments=""):
+    def __init__(self,algo:StateSet,value,comments=""):
         self.name = str(id(self))
         self._id = str(id(self))
         try:
@@ -162,50 +161,78 @@ class LinkedListNode(ARgorithmStructure, ARgorithmHashable):
 
         self.state_generator = LinkedListNodeState(self.name, self._id)
 
-        self._flag = False
-        self.value = value
-        self.next = None
-        self._flag = True
+        self._value = value
+        self._next = None
 
         state = self.state_generator.llnode_declare(
-            self.value,self.next,comments
+            self._value,self._next,comments
         )
         self.algo.add_state(state)
 
-    def __setattr__(self,key,value):
-        """The __setattr__ function is overriden to listen to state changes in
-        the value of node or the next attribute.
+    def highlight(self):
+        """The highlight function trigger the `llnode_iter` state
+        """
+        state = self.state_generator.llnode_iter(self._value,self._next)
+        self.algo.add_state(state)
+
+    @property
+    def value(self):
+        """Getter function for the value of node
+
+        Example:
+            >>> ll = LinkedListNode(algo,3)
+            >>> ll.value
+            3
+        """
+        self.highlight()
+        return self._value
+
+    @value.setter
+    def value(self,v):
+        """Setter function for the value of node
+
+        Example:
+            >>> ll = LinkedListNode(algo,3)
+            >>> ll.value = 4
+            >>> ll.value
+            4
+        """
+        last = self._value
+        self._value = v
+        state = self.state_generator.llnode_iter(self._value,self._next,last_value=last)
+        self.algo.add_state(state)
+
+    @property
+    def next(self):
+        """Getter function for the next node
+
+        Example:
+            >>> ll.next            
+        """
+        if self._next:
+            self._next.highlight()
+        return self._next
+
+    @next.setter
+    def next(self,n):
+        """Setter function for the next node
+
+        Example:
+            >>> ll.next = LinkedListNode(algo,5)
 
         Raises:
-            ARgorithmError: Raised if next pointer is not type None or LinkedListNode
+            TypeError: if the next node is not None or of type `LinkedListNode`
         """
-        if key == 'next' and value:
-            assert isinstance(value,LinkedListNode) , ARgorithmError("next should be of type None or LinkedListNode")
-        last_value = None
-        last_next = None
-        if key == 'value' and self._flag:
-            last_value = self.value
-        elif key == 'next' and self._flag:
-            last_next = self.next
-        self.__dict__[key] = value
-        if key == 'next' and self._flag:
-            if last_next or self.next:
-                state = self.state_generator.llnode_next(
-                    value=self.value,
-                    _next=self.next,
-                    last_next=last_next,
-                    comments="next pointer updated"
-                )
-                self.algo.add_state(state)
-        elif key == 'value' and self._flag:
-            state = self.state_generator.llnode_iter(
-                value=self.value,
-                _next=self.next,
-                last_value=last_value,
-                comments="value updated"
-            )
+        try:
+            assert n is None or isinstance(n,LinkedListNode)
+        except AssertionError as ae:
+            raise TypeError("next attribute can only set as None or instance of LinkedListNode")
+        last = self._next
+        self._next = n
+        if self._next is not None or last is not None:
+            state = self.state_generator.llnode_next(self._value,self._next,last_next=last)
             self.algo.add_state(state)
-
+    
     def __del__(self):
         """The __del__ function is overriden is there to listen to node
         deletion."""
@@ -215,10 +242,10 @@ class LinkedListNode(ARgorithmStructure, ARgorithmHashable):
         self.algo.add_state(state)
 
     def __str__(self):
-        return f"LinkedListNode({self.value}) at {self.name}"
+        return f"LinkedListNode({self._value}) at {self._id}"
 
     def __repr__(self):
-        return f"LinkedListNode({self.value}) at {self.name}"
+        return f"LinkedListNode({self._value}) at {self._id}"
 
 class LinkedListState:
     """This class is used to generate states for various actions performed on
@@ -247,7 +274,7 @@ class LinkedListState:
         state_def = {
             "id" : self._id,
             "variable_name" : self.name,
-            "head" : head.name if head else "none"
+            "head" : head._id if head else "none"
         }
         return State(
             state_type=state_type,
@@ -269,7 +296,7 @@ class LinkedListState:
         state_def = {
             "id" : self._id,
             "variable_name" : self.name,
-            "head" : head.name if head else "none"
+            "head" : head._id if head else "none"
         }
         if not (last_head is None):
             state_def["last_head"] = last_head
@@ -279,12 +306,30 @@ class LinkedListState:
             comments=comments
         )
 
-@serialize
-class LinkedList(ARgorithmStructure, ARgorithmHashable):
-    """The LinkedList class is used to just store the head of the linked list.
+class LinkedListIterator:
+    """This class is a generator that is returned each time an LinkedList has
+    to be iterated.
 
-    This class is useful when programmer want to program his own List class using
-    the nodes. Only contains head attribute and no methods
+    Yields:
+        Value of LinkedList Node
+
+    Raises:
+        AssertionError: If not declared with an instance of ARgorithmToolkit.linkedlist.LinkedList
+    """
+    def __init__(self,linkedlist):
+        assert isinstance(linkedlist,LinkedList)
+        self._curr = linkedlist.head
+
+    def __next__(self):
+        if self._curr:
+            data = self._curr.value
+            self._curr = self._curr.next
+            return data
+        raise StopIteration
+
+@serialize
+class LinkedList:
+    """The LinkedList class is proper implementation of singly linked list.
 
     Attributes:
         name (str): The name given to the linkedlist
@@ -296,13 +341,10 @@ class LinkedList(ARgorithmStructure, ARgorithmHashable):
 
     Example:
 
-        >>> ll = ARgorithmToolkit.LinkedList("llnode",algo)
-        >>> llnode = ARgorithmToolkit.LinkedListNode(algo,7)
-        >>> ll.head = llnode
+        >>> fl = ARgorithmToolkit.LinkedList("fl",algo)
     """
 
-    def __init__(self,name:str,algo:StateSet,head=None,comments=""):
-
+    def __init__(self,name:str,algo:StateSet,comments=""):
         assert isinstance(name,str) , ARgorithmError("Name should be of type string")
         self.name = name
         self._id = str(id(self))
@@ -313,83 +355,22 @@ class LinkedList(ARgorithmStructure, ARgorithmHashable):
             raise ARgorithmError("algo should be of type StateSet") from e
         self.state_generator = LinkedListState(self.name, self._id)
 
-        self._flag = False
-        if head:
-            assert self.algo == head.algo, ARgorithmError("The head node belongs to a different StateSet")
-        self.head = head
-        self._flag = True
-
-        state = self.state_generator.ll_declare(self.head,comments)
+        self._head = None
+        state = self.state_generator.ll_declare(self._head,comments)
         self.algo.add_state(state)
 
-    def __setattr__(self,key,value):
-        """The __setattr__ function is overriden to listen to state changes in
-        the head.
+    @property
+    def head(self):
+        return self._head
 
-        Raises:
-            ARgorithmError: Raised if head pointer is not type None or LinkedListNode
-        """
-        last_head = None
-        if key == 'head' and value:
-            assert isinstance(value,LinkedListNode) , ARgorithmError("next should be of type None or LinkedListNode")
-        if key == 'head' and self._flag:
-            last_head = self.head._id if self.head else "none"
-        self.__dict__[key] = value
-        if key == 'head' and self._flag:
-            state = self.state_generator.ll_head(self.head,last_head=last_head, comments="head pointer shifts")
-            self.algo.add_state(state)
-
-    def __str__(self):
-        return f"LinkedList(head at {self.head})"
-
-    def __repr__(self):
-        return f"LinkedList(head at {self.head})"
-
-class ForwardListIterator:
-    """This class is a generator that is returned each time an ForwardList has
-    to be iterated.
-
-    Yields:
-        Value of ForwardList Node
-
-    Raises:
-        AssertionError: If not declared with an instance of ARgorithmToolkit.linkedlist.ForwardList
-    """
-    def __init__(self,forwardlist):
-        assert isinstance(forwardlist,ForwardList)
-        self._curr = forwardlist.head
-
-    def __next__(self):
-        if self._curr:
-            data = self._curr.value
-            self._curr = self._curr.next
-            return data
-        raise StopIteration
-
-class ForwardList(LinkedList):
-    """The ForwardList class is proper implementation of singly linked list.
-
-    The difference between LinkedList and ForwardList class is that ForwardList
-    is a ready implementation of singly linked list. In the LinkedList class the
-    programmer will have to make their own methods.
-
-    Attributes:
-        name (str): The name given to the linkedlist
-        algo (ARgorithmToolkit.utils.StateSet): The stateset that will store the states generated by the instance of ForwardList Class
-        head (LinkedListNode): The referece to head of linkedlist
-        size (int): Number of nodes i.e size of list
-
-    Raises:
-        ARgorithmError: Raised if algo is not of type StateSet
-
-    Example:
-
-        >>> fl = ARgorithmToolkit.ForwardList("fl",algo)
-    """
-
-    def __init__(self,name:str,algo:StateSet,comments=""):
-        super().__init__(name,algo,comments="")
-        self.size = 0
+    @head.setter
+    def head(self,h):
+        if h:
+            assert isinstance(h,LinkedListNode) , ARgorithmError("next should be of type None or LinkedListNode")
+        last_head = self._head._id if self._head else None
+        self._head = h
+        state = self.state_generator.ll_head(self.head,last_head=last_head, comments="head pointer shifts")
+        self.algo.add_state(state)
 
     def __len__(self):
         """overloads the len() operator to return size of list.
@@ -399,12 +380,13 @@ class ForwardList(LinkedList):
 
         Example:
 
-            >>> fl = ARgorithmToolkit.ForwardList("fl",algo)
+            >>> fl = ARgorithmToolkit.LinkedList("fl",algo)
             >>> fl.push_front(1)
-            >>> fl.size()
+            >>> len(fl)
             1
         """
-        return self.size
+        size = len(self.tolist())
+        return size
 
     def insert(self,value,index=0):
         """Insert node with given value at particular index. If index is not
@@ -416,22 +398,15 @@ class ForwardList(LinkedList):
 
         Example:
 
-            >>> fl = ARgorithmToolkit.ForwardList("fl",algo)
+            >>> fl = ARgorithmToolkit.LinkedList("fl",algo)
             >>> fl.insert(2)
             >>> fl.insert(4)
             >>> fl.insert(3,1)
             >>> fl
-            ForwardList([4, 3, 2])
+            LinkedList([4, 3, 2])
         """
-        if self.size == 0 or index == 0:
+        if self._head is None or index == 0:
             self.push_front(value)
-        elif self.size < index:
-            temp = self.head
-            while temp.next:
-                temp = temp.next
-            curr = LinkedListNode(self.algo,value)
-            temp.next = curr
-            self.size += 1
         else:
             count = 1
             temp = self.head
@@ -441,7 +416,6 @@ class ForwardList(LinkedList):
             curr = LinkedListNode(self.algo,value)
             curr.next = temp.next
             temp.next = curr
-            self.size += 1
 
     def push_front(self,value):
         """Pushes value to front.
@@ -450,24 +424,23 @@ class ForwardList(LinkedList):
             value : Value to be appended to front
 
         Example:
-            >>> fl = ARgorithmToolkit.ForwardList("fl",algo)
+            >>> fl = ARgorithmToolkit.LinkedList("fl",algo)
             >>> fl
-            ForwardList([])
+            LinkedList([])
             >>> fl.push_front(1)
             >>> fl
-            ForwardList([1])
+            LinkedList([1])
         """
         curr = LinkedListNode(self.algo,value)
-        if self.head:
+        if self._head:
             curr.next = self.head
             self.head = curr
         else:
             curr.next = None
             self.head = curr
-        self.size+=1
 
     def pop_front(self):
-        """Pops first element of forwardlist.
+        """Pops first element of linkedlist.
 
         Raises:
             ARgorithmError: Raised if list is empty
@@ -478,17 +451,16 @@ class ForwardList(LinkedList):
         Example:
 
             >>> fl
-            ForwardList([2, 1])
+            LinkedList([2, 1])
             >>> fl.pop_front()
             2
         """
-        if self.head is None:
+        if self._head is None:
             raise ARgorithmError("Empty list")
         data = self.head.value
         temp = self.head
         self.head = self.head.next
         del temp
-        self.size -= 1
         return data
 
     def front(self):
@@ -503,27 +475,27 @@ class ForwardList(LinkedList):
         Example:
 
             >>> fl
-            ForwardList([2, 1])
+            LinkedList([2, 1])
             >>> fl.front()
             2
         """
-        if self.head is None:
+        if self._head is None:
             raise ARgorithmError("Empty list")
-        return self.head.value
+        return self._head.value
 
     def __iter__(self):
         """Returns the generator object to iterate through elements of
-        ForwardList.
+        LinkedList.
 
         Returns:
-            ForwardListIterator: Generator class for ForwardList
+            LinkedListIterator: Generator class for LinkedList
 
         Example:
 
             >>> [x for x in fl]
             [2, 2, 1]
         """
-        return ForwardListIterator(self)
+        return LinkedListIterator(self)
 
     def remove(self,value):
         """Remove elements with given value from list.
@@ -537,53 +509,51 @@ class ForwardList(LinkedList):
         Example:
 
             >>> fl
-            ForwardList([2, 2, 1])
+            LinkedList([2, 2, 1])
             >>> fl.remove(2)
             >>> fl
-            ForwardList([1])
+            LinkedList([1])
         """
-        if self.head is None:
+        if self._head is None:
             raise ARgorithmError("Empty list")
         while value == self.head.value:
             temp = self.head
             self.head = self.head.next
             del temp
-            self.size -= 1
             if self.head is None:
                 return
         curr = self.head
         while curr:
-            if curr.next:
-                if curr.next.value == value:
+            if curr._next:
+                if curr._next.value == value:
                     temp = curr.next
                     curr.next = curr.next.next
                     del temp
-                    self.size -= 1
                     continue
             curr = curr.next
 
     def tolist(self):
-        """Converts the ForwardList to python list.
+        """Converts the LinkedList to python list.
 
         Returns:
-            list: list of ForwardList items
+            list: list of LinkedList items
 
         Example:
 
             >>> fl
-            ForwardList([3, 1])
+            LinkedList([3, 1])
             >>> fl.tolist()
             [3, 1]
         """
-        curr = self.head
+        curr = self._head
         data = []
         while curr:
-            data.append(curr.value)
-            curr = curr.next
+            data.append(curr._value)
+            curr = curr._next
         return data
 
     def __repr__(self):
-        return f"ForwardList({self.tolist()})"
+        return f"LinkedList({self.tolist()})"
 
     def __str__(self):
-        return f"ForwardList({self.tolist()})"
+        return f"LinkedList({self.tolist()})"

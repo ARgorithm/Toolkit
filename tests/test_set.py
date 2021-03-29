@@ -1,4 +1,4 @@
-"""Test module for ARgorithmToolkit.Set"""
+"""Test module for ARgorithmToolkit.Set."""
 
 import ARgorithmToolkit
 from tests.utils import last_state
@@ -6,7 +6,7 @@ from tests.utils import last_state
 algo = ARgorithmToolkit.StateSet()
 
 def test_init():
-    """test set declaration"""
+    """test set declaration."""
     l = [1,2,3]
     t = (1,2,3)
     vec = ARgorithmToolkit.Vector('vec',algo,[1,2,3])
@@ -19,11 +19,11 @@ def test_init():
     myset = ARgorithmToolkit.Set('myset',algo,vec)
 
     state = last_state(algo)
-    assert state['state_type'] == "set_declare"
+    assert state.state_type == "set_declare"
     assert myset.body == set([1,2,3])
 
 def test_add_remove_find():
-    """test internal set operations such as add,find,remove"""
+    """test internal set operations such as add,find,remove."""
     myset = ARgorithmToolkit.Set('myset',algo)
     myset.add(3)
     myset.add(3)
@@ -42,8 +42,8 @@ def test_add_remove_find():
         pass
 
     state = last_state(algo)
-    assert state['state_type'] == "set_add"
-    assert state['comments'] == "adding an ARgorithmToolkit.String"
+    assert state.state_type == "set_add"
+    assert state.comments == "adding an ARgorithmToolkit.String"
 
     myset.remove(3,comments="remove 3")
     myset.remove(st,comments="remove ARgorithmToolkit.String object")
@@ -56,17 +56,17 @@ def test_add_remove_find():
     assert myset.body == set([3.14,'abc',True])
 
     state = last_state(algo)
-    assert state['state_type'] == "set_remove"
-    assert state['comments'] == "remove ARgorithmToolkit.String object"
+    assert state.state_type == "set_remove"
+    assert state.comments == "remove ARgorithmToolkit.String object"
 
     assert myset.find(3.14)
     assert not myset.find(3)
 
     state = last_state(algo)
-    assert state['state_type'] == "set_find"
+    assert state.state_type == "set_find"
 
 def test_union_intersection_difference():
-    """test operations between sets"""
+    """test operations between sets."""
     set1 = ARgorithmToolkit.Set('set1',algo,[1,2,3])
     set2 = ARgorithmToolkit.Set('set1',algo,[2,4,5])
 
@@ -78,8 +78,8 @@ def test_union_intersection_difference():
     assert inter_set.body == set([2])
 
     state = last_state(algo)
-    assert state["state_type"] == "set_declare"
+    assert state.state_type == "set_declare"
     state = last_state(algo)
-    assert state["state_type"] == "set_declare"
+    assert state.state_type == "set_declare"
     state = last_state(algo)
-    assert state["state_type"] == "set_declare"
+    assert state.state_type == "set_declare"
